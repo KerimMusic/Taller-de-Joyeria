@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Ganancias y Gastos</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: radial-gradient(circle at 20% 0%, #1b2440 0%, #0b0e17 55%);
+    color: #e8ecf4;
+    min-height: 100vh;
+    padding: 22px 14px 70px;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  /* ---------- Cabecera ---------- */
+  header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding: 18px 20px;
+    background: rgba(255,255,255,.045);
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 18px;
+    backdrop-filter: blur(8px);
+  }
+  header h1 { font-size: 1.15rem; font-weight: 650; letter-spacing: .3px; }
+  header h1 span { color: #7dd3fc; }
+
+  .reloj-caja { text-align: right; line-height: 1.35; }
+  #reloj {
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: #7dd3fc;
+    letter-spacing: 1px;
+  }
+  #fechaHoy {
+    font-size: .82rem;
+    color: #9aa6bf;
+    text-transform: capitalize;
+  }
+  @media (max-width: 520px) {
+    .reloj-caja { text-align: left; }
+    #reloj { font-size: 1.25rem; }
+  }
+
+  /* ---------- Tarjetas resumen ---------- */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 640px) { .cards { grid-template-columns: 1fr; } }
+
+  .card {
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.045);
+  }
+  .card .etiqueta {
+    font-size: .74rem;
+    text-transform: uppercase;
+    letter-spacing: 1.1px;
+    color: #9aa6bf;
+    margin-bottom: 7px;
+    font-weight: 600;
+  }
+  .card .valor {
+    font-size: 1.6rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+  }
+  .card.gan .valor  { color: #4ade80; }
+  .card.gas .valor  { color: #f87171; }
+  .card.bal .valor  { color: #7dd3fc; }
+  .card.bal.neg .valor { color: #fb923c; }
+
+  /* ---------- Formularios ---------- */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 26px;
+  }
+  @media (max-width: 720px) { .form-grid { grid-template-columns: 1fr; } }
+
+  form {
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.045);
+  }
+  form h2 {
+    font-size: .95rem;
+    margin-bottom: 14px;
+    font-weight: 650;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  form.ganancia h2 { color: #4ade80; }
+  form.gasto h2    { color: #f87171; }
+
+  .campo { margin-bottom: 11px; }
+  .campo label {
+    display: block;
+    font-size: .74rem;
+    color: #9aa6bf;
+    margin-bottom: 5px;
+    font-weight: 600;
+    letter-spacing: .4px;
+  }
+
+  input, select {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 11px;
+    border: 1px solid rgba(255,255,255,.13);
+    background: rgba(0,0,0,.28);
+    color: #e8ecf4;
+    font-size: .95rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(125,211,252,.14);
+  }
+  input::placeholder { color: #5d6884; }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 11px;
+    font-weight: 650;
+    font-size: .92rem;
+    transition: transform .12s, filter .15s, opacity .15s;
+  }
+  button:active { transform: scale(.98); }
+
+  .btn-add {
+    width: 100%;
+    padding: 12px;
+    color: #06251a;
+    margin-top: 4px;
+  }
+  .ganancia .btn-add { background: linear-gradient(180deg,#5ee89a,#22c55e); }
+  .gasto .btn-add    { background: linear-gradient(180deg,#fb8f8f,#ef4444); color:#2b0808; }
+  .btn-add:hover { filter: brightness(1.08); }
+
+  /* ---------- Historial ---------- */
+  .historial {
+    padding: 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.09);
+    background: rgba(255,255,255,.035);
+  }
+  .historial-top {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .historial-top h2 { font-size: 1rem; font-weight: 650; }
+  .controles { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; }
+  .controles select { width: auto; padding: 8px 12px; font-size: .84rem; }
+
+  .btn-borrar-todo {
+    padding: 8px 14px;
+    font-size: .8rem;
+    background: rgba(239,68,68,.14);
+    color: #fca5a5;
+    border: 1px solid rgba(239,68,68,.32);
+  }
+  .btn-borrar-todo:hover { background: rgba(239,68,68,.25); }
+
+  .btn-pdf {
+    padding: 8px 15px;
+    font-size: .8rem;
+    background: linear-gradient(180deg,#38bdf8,#0284c7);
+    color: #fff;
+    font-weight: 650;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-pdf:hover { filter: brightness(1.1); }
+
+  .dia-grupo { margin-bottom: 20px; }
+  .dia-grupo:last-child { margin-bottom: 0; }
+
+  .dia-cabecera {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding: 0 4px 8px;
+    margin-bottom: 8px;
+    border-bottom: 1px dashed rgba(255,255,255,.11);
+    flex-wrap: wrap;
+  }
+  .dia-cabecera .fecha {
+    font-size: .84rem;
+    font-weight: 650;
+    color: #c3ccdd;
+    text-transform: capitalize;
+  }
+  .dia-cabecera .totales { font-size: .76rem; color: #9aa6bf; font-variant-numeric: tabular-nums; }
+  .dia-cabecera .totales b { font-weight: 700; }
+
+  ul.lista { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+
+  li.item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 13px;
+    border-radius: 12px;
+    background: rgba(255,255,255,.04);
+    border-left: 4px solid transparent;
+  }
+  li.item.ganancia { border-left-color: #22c55e; }
+  li.item.gasto    { border-left-color: #ef4444; }
+
+  li.item .info { flex: 1; min-width: 0; }
+  li.item .nombre {
+    display: block;
+    font-size: .92rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  li.item .hora { font-size: .73rem; color: #8b96ad; font-variant-numeric: tabular-nums; }
+
+  li.item .monto {
+    font-weight: 750;
+    font-size: .98rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  li.item.ganancia .monto { color: #4ade80; }
+  li.item.gasto .monto    { color: #f87171; }
+
+  .btn-del {
+    width: 30px; height: 30px;
+    display: grid; place-items: center;
+    border-radius: 9px;
+    background: rgba(255,255,255,.06);
+    color: #98a3ba;
+    font-size: .9rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .btn-del:hover { background: rgba(239,68,68,.22); color: #fca5a5; }
+
+  .vacio {
+    text-align: center;
+    padding: 34px 14px;
+    color: #6f7a92;
+    font-size: .9rem;
+  }
+  .vacio .icono { font-size: 2rem; display: block; margin-bottom: 10px; opacity: .55; }
+
+  /* ---------- Modal PDF ---------- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.72);
+    backdrop-filter: blur(4px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1000;
+  }
+  .modal-overlay.activo { display: flex; }
+
+  .modal {
+    background: #151b2b;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 18px;
+    padding: 24px;
+    max-width: 480px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+    animation: modalIn .18s ease-out;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(10px) scale(.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal h3 {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .modal p.sub {
+    color: #9aa6bf;
+    font-size: .86rem;
+    margin-bottom: 16px;
+  }
+
+  .opciones-rango { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+  .opciones-rango label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 11px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    cursor: pointer;
+    font-size: .9rem;
+    transition: all .15s;
+  }
+  .opciones-rango label:hover { background: rgba(255,255,255,.08); }
+  .opciones-rango label:has(input:checked) {
+    background: rgba(125,211,252,.12);
+    border-color: #7dd3fc;
+    color: #bae6fd;
+  }
+  .opciones-rango input[type="radio"] {
+    accent-color: #7dd3fc;
+    width: 16px; height: 16px;
+    cursor: pointer;
+  }
+
+  .rango-personalizado {
+    display: none;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 12px;
+    background: rgba(0,0,0,.22);
+    border-radius: 11px;
+    border: 1px solid rgba(255,255,255,.07);
+  }
+  .rango-personalizado.visible { display: flex; flex-wrap: wrap; }
+  .rango-personalizado .campo-fecha { flex: 1; min-width: 140px; }
+  .rango-personalizado label {
+    font-size: .72rem;
+    color: #9aa6bf;
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .rango-personalizado input[type="date"] {
+    color-scheme: dark;
+  }
+
+  .acciones-modal {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .btn-cancelar {
+    padding: 10px 18px;
+    background: rgba(255,255,255,.08);
+    color: #c3ccdd;
+  }
+  .btn-cancelar:hover { background: rgba(255,255,255,.14); }
+  .btn-descargar {
+    padding: 10px 20px;
+    background: linear-gradient(180deg,#38bdf8,#0284c7);
+    color: #fff;
+    font-weight: 650;
+  }
+  .btn-descargar:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>💰 Registro de <span>Ganancias y Gastos</span></h1>
+    <div class="reloj-caja">
+      <div id="reloj">--:--:--</div>
+      <div id="fechaHoy">cargando fecha…</div>
+    </div>
+  </header>
+
+  <!-- Resumen -->
+  <section class="cards">
+    <div class="card gan">
+      <div class="etiqueta">Ganado <span id="periodoGan">hoy</span></div>
+      <div class="valor" id="totalGan">$0,00</div>
+    </div>
+    <div class="card gas">
+      <div class="etiqueta">Gastado <span id="periodoGas">hoy</span></div>
+      <div class="valor" id="totalGas">$0,00</div>
+    </div>
+    <div class="card bal" id="cardBal">
+      <div class="etiqueta">Balance <span id="periodoBal">hoy</span></div>
+      <div class="valor" id="totalBal">$0,00</div>
+    </div>
+  </section>
+
+  <!-- Formularios -->
+  <div class="form-grid">
+
+    <form class="ganancia" id="formGanancia" autocomplete="off">
+      <h2>▲ Nueva ganancia</h2>
+      <div class="campo">
+        <label for="nombreGan">Nombre de la ganancia</label>
+        <input type="text" id="nombreGan" placeholder="Ej: Venta de camisetas" maxlength="70" required>
+      </div>
+      <div class="campo">
+        <label for="montoGan">Monto</label>
+        <input type="text" id="montoGan" inputmode="decimal" placeholder="0,00" required>
+      </div>
+      <button type="submit" class="btn-add">Guardar ganancia</button>
+    </form>
+
+    <form class="gasto" id="formGasto" autocomplete="off">
+      <h2>▼ Nuevo gasto</h2>
+      <div class="campo">
+        <label for="nombreGas">Nombre del gasto</label>
+        <input type="text" id="nombreGas" placeholder="Ej: Transporte" maxlength="70" required>
+      </div>
+      <div class="campo">
+        <label for="montoGas">Monto</label>
+        <input type="text" id="montoGas" inputmode="decimal" placeholder="0,00" required>
+      </div>
+      <button type="submit" class="btn-add">Guardar gasto</button>
+    </form>
+
+  </div>
+
+  <!-- Historial -->
+  <section class="historial">
+    <div class="historial-top">
+      <h2>📋 Movimientos registrados</h2>
+      <div class="controles">
+        <select id="filtro">
+          <option value="hoy">Hoy</option>
+          <option value="ayer">Ayer</option>
+          <option value="semana">Últimos 7 días</option>
+          <option value="mes">Este mes</option>
+          <option value="todos">Todo el historial</option>
+        </select>
+        <button class="btn-pdf" id="btnPDF">⬇ Descargar PDF</button>
+        <button class="btn-borrar-todo" id="btnBorrarTodo">Borrar todo</button>
+      </div>
+    </div>
+    <div id="contenidoLista"></div>
+  </section>
+
+</div>
+
+<!-- ================= MODAL PDF ================= -->
+<div class="modal-overlay" id="modalPDF">
+  <div class="modal">
+    <h3>📄 Descargar estado de cuenta</h3>
+    <p class="sub">Elige el período que quieres incluir en el PDF.</p>
+
+    <div class="opciones-rango">
+      <label><input type="radio" name="rangoPDF" value="hoy" checked> Hoy</label>
+      <label><input type="radio" name="rangoPDF" value="ayer"> Ayer</label>
+      <label><input type="radio" name="rangoPDF" value="semana"> Últimos 7 días</label>
+      <label><input type="radio" name="rangoPDF" value="mes"> Este mes</label>
+      <label><input type="radio" name="rangoPDF" value="rango"> 📅 Rango personalizado</label>
+      <label><input type="radio" name="rangoPDF" value="todos"> Todo el historial</label>
+    </div>
+
+    <div class="rango-personalizado" id="rangoPersonalizado">
+      <div class="campo-fecha">
+        <label for="fechaDesde">Desde</label>
+        <input type="date" id="fechaDesde">
+      </div>
+      <div class="campo-fecha">
+        <label for="fechaHasta">Hasta</label>
+        <input type="date" id="fechaHasta">
+      </div>
+    </div>
+
+    <div class="acciones-modal">
+      <button class="btn-cancelar" id="btnCancelarPDF">Cancelar</button>
+      <button class="btn-descargar" id="btnGenerarPDF">⬇ Descargar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- Librería jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+/* =========================================================
+   CONFIGURACIÓN Y ALMACENAMIENTO
+   ========================================================= */
+const CLAVE = 'registro_finanzas_v1';
+let registros = [];
+
+function cargar() {
+  try {
+    const datos = JSON.parse(localStorage.getItem(CLAVE));
+    registros = Array.isArray(datos) ? datos : [];
+  } catch (e) { registros = []; }
+}
+
+function guardar() {
+  try { localStorage.setItem(CLAVE, JSON.stringify(registros)); }
+  catch (e) { alert('⚠️ No se pudo guardar. Revisa que el navegador permita almacenamiento local.'); }
+}
+
+/* =========================================================
+   UTILIDADES
+   ========================================================= */
+const fmtMoneda = new Intl.NumberFormat('es-ES', {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2
+});
+
+function dinero(n) {
+  return (n < 0 ? '-$' : '$') + fmtMoneda.format(Math.abs(n));
+}
+
+function claveDia(fecha) {
+  return fecha.getFullYear() + '-' +
+         String(fecha.getMonth() + 1).padStart(2, '0') + '-' +
+         String(fecha.getDate()).padStart(2, '0');
+}
+
+function fechaDesdeClave(clave) {
+  const [a, m, d] = clave.split('-').map(Number);
+  return new Date(a, m - 1, d);
+}
+
+function localIso(d) {
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+
+function fechaCorta(d) {
+  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function fechaLarga(d) {
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function textoDia(clave) {
+  const fecha = fechaDesdeClave(clave);
+  const hoy = new Date();  hoy.setHours(0,0,0,0);
+  const ayer = new Date(hoy); ayer.setDate(ayer.getDate() - 1);
+
+  let prefijo = '';
+  if (fecha.getTime() === hoy.getTime()) prefijo = 'Hoy · ';
+  else if (fecha.getTime() === ayer.getTime()) prefijo = 'Ayer · ';
+
+  return prefijo + fecha.toLocaleDateString('es-ES', {
+    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+  });
+}
+
+/* =========================================================
+   RELOJ
+   ========================================================= */
+function actualizarReloj() {
+  const ahora = new Date();
+  document.getElementById('reloj').textContent =
+    ahora.toLocaleTimeString('es-ES', { hour12: false });
+  document.getElementById('fechaHoy').textContent =
+    ahora.toLocaleDateString('es-ES', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    });
+}
+
+/* =========================================================
+   FILTROS
+   ========================================================= */
+function predicadoFiltro(filtro) {
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+  let desde = null, hasta = null;
+
+  switch (filtro) {
+    case 'hoy':
+      desde = new Date(hoy); hasta = new Date(hoy); hasta.setDate(hasta.getDate() + 1);
+      break;
+    case 'ayer':
+      desde = new Date(hoy); desde.setDate(desde.getDate() - 1);
+      hasta = new Date(hoy);
+      break;
+    case 'semana':
+      desde = new Date(hoy); desde.setDate(desde.getDate() - 6);
+      hasta = new Date(hoy); hasta.setDate(hasta.getDate() + 1);
+      break;
+    case 'mes':
+      desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 1);
+      break;
+    default:
+      return () => true;
+  }
+
+  return (r) => {
+    const t = fechaDesdeClave(r.dia).getTime();
+    return t >= desde.getTime() && t < hasta.getTime();
+  };
+}
+
+const NOMBRE_PERIODO = {
+  hoy: 'hoy', ayer: 'ayer', semana: 'últimos 7 días',
+  mes: 'este mes', todos: 'en total'
+};
+
+/* =========================================================
+   AGREGAR REGISTROS
+   ========================================================= */
+function agregar(tipo, nombre, montoTexto) {
+  const limpio = String(montoTexto).replace(/\s/g, '').replace(',', '.');
+  const monto = parseFloat(limpio);
+
+  if (!nombre.trim()) { alert('Escribe un nombre para el registro.'); return false; }
+  if (!isFinite(monto) || monto <= 0) { alert('Escribe un monto válido mayor que 0.'); return false; }
+
+  const ahora = new Date();
+  registros.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+    tipo,
+    nombre: nombre.trim(),
+    monto: Math.round(monto * 100) / 100,
+    dia: claveDia(ahora),
+    hora: ahora.toLocaleTimeString('es-ES', { hour12: false }),
+    marcaTiempo: ahora.getTime()
+  });
+
+  guardar();
+  render();
+  return true;
+}
+
+/* =========================================================
+   RENDER
+   ========================================================= */
+function render() {
+  const filtro = document.getElementById('filtro').value;
+  const predicado = predicadoFiltro(filtro);
+  const visibles = registros.filter(predicado);
+
+  let gan = 0, gas = 0;
+  visibles.forEach(r => {
+    if (r.tipo === 'ganancia') gan += r.monto;
+    else gas += r.monto;
+  });
+  const balance = gan - gas;
+
+  document.getElementById('totalGan').textContent = dinero(gan);
+  document.getElementById('totalGas').textContent = dinero(gas);
+  document.getElementById('totalBal').textContent = dinero(balance);
+  document.getElementById('cardBal').classList.toggle('neg', balance < 0);
+
+  const periodo = NOMBRE_PERIODO[filtro] || '';
+  document.getElementById('periodoGan').textContent = periodo;
+  document.getElementById('periodoGas').textContent = periodo;
+  document.getElementById('periodoBal').textContent = periodo;
+
+  const contenedor = document.getElementById('contenidoLista');
+
+  if (visibles.length === 0) {
+    contenedor.innerHTML =
+      '<div class="vacio"><span class="icono">🗒️</span>' +
+      'No hay movimientos en este período.<br>Agrega una ganancia o un gasto arriba.</div>';
+    return;
+  }
+
+  const grupos = {};
+  visibles.forEach(r => {
+    if (!grupos[r.dia]) grupos[r.dia] = [];
+    grupos[r.dia].push(r);
+  });
+
+  const dias = Object.keys(grupos).sort().reverse();
+
+  let html = '';
+  dias.forEach(dia => {
+    const items = grupos[dia].sort((a, b) => b.marcaTiempo - a.marcaTiempo);
+    let dGan = 0, dGas = 0;
+    items.forEach(r => r.tipo === 'ganancia' ? dGan += r.monto : dGas += r.monto);
+    const dBal = dGan - dGas;
+
+    html += '<div class="dia-grupo">';
+    html += '<div class="dia-cabecera">';
+    html += '<span class="fecha">' + textoDia(dia) + '</span>';
+    html += '<span class="totales">' +
+              '<b style="color:#4ade80">+' + dinero(dGan) + '</b> · ' +
+              '<b style="color:#f87171">-' + dinero(dGas) + '</b> · ' +
+              'Balance: <b style="color:' + (dBal < 0 ? '#fb923c' : '#7dd3fc') + '">' +
+              dinero(dBal) + '</b>' +
+            '</span>';
+    html += '</div>';
+    html += '<ul class="lista">';
+    items.forEach(r => {
+      const signo = r.tipo === 'ganancia' ? '+' : '-';
+      const seguro = r.nombre.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      html += '<li class="item ' + r.tipo + '">' +
+                '<div class="info">' +
+                  '<span class="nombre">' + seguro + '</span>' +
+                  '<span class="hora">' + r.hora + '</span>' +
+                '</div>' +
+                '<span class="monto">' + signo + dinero(r.monto) + '</span>' +
+                '<button class="btn-del" data-id="' + r.id + '" title="Eliminar este registro">✕</button>' +
+              '</li>';
+    });
+    html += '</ul></div>';
+  });
+
+  contenedor.innerHTML = html;
+}
+
+/* =========================================================
+   EVENTOS
+   ========================================================= */
+document.getElementById('formGanancia').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const nombre = document.getElementById('nombreGan');
+  const monto  = document.getElementById('montoGan');
+  if (agregar('ganancia', nombre.value, monto.value)) {
+    nombre.value = ''; monto.value = ''; nombre.focus();
+  }
+});
+
+document.getElementById('formGasto').addEventListener('submit', function (e) {
+  e.preventDefault();
+  const nombre = document.getElementById('nombreGas');
+  const monto  = document.getElementById('montoGas');
+  if (agregar('gasto', nombre.value, monto.value)) {
+    nombre.value = ''; monto.value = ''; nombre.focus();
+  }
+});
+
+document.getElementById('contenidoLista').addEventListener('click', function (e) {
+  const boton = e.target.closest('.btn-del');
+  if (!boton) return;
+  const id = boton.dataset.id;
+  const reg = registros.find(r => r.id === id);
+  if (!reg) return;
+  const tipo = reg.tipo === 'ganancia' ? 'ganancia' : 'gasto';
+  if (!confirm('¿Eliminar la ' + tipo + ' "' + reg.nombre + '" de ' + dinero(reg.monto) + '?\n\nEsta acción no se puede deshacer.')) return;
+  registros = registros.filter(r => r.id !== id);
+  guardar();
+  render();
+});
+
+document.getElementById('btnBorrarTodo').addEventListener('click', function () {
+  if (registros.length === 0) { alert('No hay registros para borrar.'); return; }
+  if (!confirm('⚠️ Vas a eliminar TODOS los registros guardados (' + registros.length + ').\n\n¿Continuar?')) return;
+  if (!confirm('Última confirmación: esta acción es definitiva.\n¿Borrar todo el historial?')) return;
+  registros = []; guardar(); render();
+});
+
+document.getElementById('filtro').addEventListener('change', render);
+
+/* =========================================================
+   MODAL PDF
+   ========================================================= */
+const modalPDF = document.getElementById('modalPDF');
+const rangoPersonalizado = document.getElementById('rangoPersonalizado');
+const fechaDesde = document.getElementById('fechaDesde');
+const fechaHasta = document.getElementById('fechaHasta');
+
+document.getElementById('btnPDF').addEventListener('click', () => {
+  if (registros.length === 0) {
+    alert('Aún no hay movimientos registrados. Agrega alguno antes de descargar el estado de cuenta.');
+    return;
+  }
+  const hoy = new Date();
+  fechaDesde.value = localIso(hoy);
+  fechaHasta.value = localIso(hoy);
+  // reset radio
+  document.querySelector('input[name="rangoPDF"][value="hoy"]').checked = true;
+  rangoPersonalizado.classList.remove('visible');
+  modalPDF.classList.add('activo');
+});
+
+document.querySelectorAll('input[name="rangoPDF"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    if (radio.value === 'rango' && radio.checked) {
+      rangoPersonalizado.classList.add('visible');
+    } else {
+      rangoPersonalizado.classList.remove('visible');
+    }
+  });
+});
+
+function cerrarModalPDF() { modalPDF.classList.remove('activo'); }
+
+document.getElementById('btnCancelarPDF').addEventListener('click', cerrarModalPDF);
+modalPDF.addEventListener('click', e => { if (e.target === modalPDF) cerrarModalPDF(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalPDF(); });
+
+/* =========================================================
+   GENERAR PDF
+   ========================================================= */
+document.getElementById('btnGenerarPDF').addEventListener('click', () => {
+  const seleccion = document.querySelector('input[name="rangoPDF"]:checked').value;
+  const hoy = new Date(); hoy.setHours(0,0,0,0);
+
+  let desde, hasta, etiqueta;
+
+  switch (seleccion) {
+    case 'hoy':
+      desde = new Date(hoy); hasta = new Date(hoy);
+      etiqueta = 'Período: Hoy · ' + fechaLarga(hoy);
+      break;
+    case 'ayer': {
+      desde = new Date(hoy); desde.setDate(desde.getDate() - 1);
+      hasta = new Date(desde);
+      etiqueta = 'Período: Ayer · ' + fechaLarga(desde);
+      break;
+    }
+    case 'semana': {
+      desde = new Date(hoy); desde.setDate(desde.getDate() - 6);
+      hasta = new Date(hoy);
+      etiqueta = 'Período: ' + fechaCorta(desde) + ' al ' + fechaCorta(hasta);
+      break;
+    }
+    case 'mes': {
+      desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      hasta = new Date(hoy);
+      etiqueta = 'Período: ' + hoy.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      break;
+    }
+    case 'todos': {
+      if (registros.length === 0) { alert('No hay registros para exportar.'); return; }
+      const minT = Math.min(...registros.map(r => fechaDesdeClave(r.dia).getTime()));
+      desde = new Date(minT);
+      hasta = new Date(hoy);
+      etiqueta = 'Período: Todo el historial (' + fechaCorta(desde) + ' al ' + fechaCorta(hasta) + ')';
+      break;
+    }
+    case 'rango': {
+      if (!fechaDesde.value || !fechaHasta.value) {
+        alert('Selecciona ambas fechas del rango personalizado.'); return;
+      }
+      desde = fechaDesdeClave(fechaDesde.value);
+      hasta = fechaDesdeClave(fechaHasta.value);
+      if (desde.getTime() > hasta.getTime()) {
+        alert('La fecha "Desde" no puede ser posterior a la fecha "Hasta".'); return;
+      }
+      etiqueta = 'Período: ' + fechaCorta(desde) + ' al ' + fechaCorta(hasta);
+      break;
+    }
+  }
+
+  generarPDF(desde, hasta, etiqueta);
+  cerrarModalPDF();
+});
+
+function generarPDF(desde, hasta, etiqueta) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  // Filtrar
+  const filtrados = registros.filter(r => {
+    const t = fechaDesdeClave(r.dia).getTime();
+    return t >= desde.getTime() && t <= hasta.getTime();
+  }).sort((a, b) => a.marcaTiempo - b.marcaTiempo);
+
+  // Totales
+  let gan = 0, gas = 0;
+  filtrados.forEach(r => {
+    if (r.tipo === 'ganancia') gan += r.monto; else gas += r.monto;
+  });
+  const balance = gan - gas;
+
+  // Métricas de página
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentW = pageW - margin * 2;
+  let y = 0;
+
+  const COL = {
+    dark: [30, 41, 59],
+    text: [50, 60, 80],
+    muted: [120, 130, 150],
+    green: [22, 163, 74],
+    red: [220, 38, 38],
+    blue: [2, 132, 199],
+    lightBg: [243, 246, 251],
+    border: [218, 224, 234],
+    zebra: [248, 250, 253]
+  };
+
+  /* ---------- Cabecera de página ---------- */
+  function dibujarCabecera() {
+    doc.setFillColor(...COL.dark);
+    doc.rect(0, 0, pageW, 32, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('Estado de Cuenta', margin, 14);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(180, 205, 230);
+    doc.text('Registro de Ganancias y Gastos', margin, 20.5);
+
+    doc.setFontSize(8);
+    doc.setTextColor(170, 190, 215);
+    doc.text('Generado: ' + new Date().toLocaleString('es-ES'),
+             pageW - margin, 14, { align: 'right' });
+    doc.text(etiqueta, pageW - margin, 20, { align: 'right' });
+
+    y = 40;
+  }
+
+  /* ---------- Footer ---------- */
+  function dibujarPie(numPag, total) {
+    doc.setDrawColor(...COL.border);
+    doc.setLineWidth(0.3);
+    doc.line(margin, pageH - 14, pageW - margin, pageH - 14);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...COL.muted);
+    doc.text('Estado de cuenta generado automáticamente', margin, pageH - 8);
+    doc.text('Página ' + numPag + ' de ' + total, pageW - margin, pageH - 8, { align: 'right' });
+  }
+
+  /* ---------- Control de salto ---------- */
+  function comprobarSalto(altura) {
+    if (y + altura > pageH - 20) {
+      doc.addPage();
+      dibujarCabecera();
+      dibujarCabeceraTabla();
+    }
+  }
+
+  /* ---------- Resumen ---------- */
+  function dibujarResumen() {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...COL.text);
+    doc.text('Resumen del período', margin, y);
+    y += 6;
+
+    const boxH = 20;
+    doc.setFillColor(...COL.lightBg);
+    doc.setDrawColor(...COL.border);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentW, boxH, 2, 2, 'FD');
+
+    const colW = contentW / 3;
+    const items = [
+      { label: 'TOTAL GANADO',  val: '+$' + fmtMoneda.format(gan),  color: COL.green },
+      { label: 'TOTAL GASTADO', val: '-$' + fmtMoneda.format(gas),  color: COL.red },
+      { label: 'BALANCE',       val: (balance >= 0 ? '+' : '-') + '$' + fmtMoneda.format(Math.abs(balance)),
+        color: balance >= 0 ? COL.blue : COL.red }
+    ];
+
+    items.forEach((it, i) => {
+      const x = margin + colW * i;
+      if (i > 0) {
+        doc.setDrawColor(...COL.border);
+        doc.line(x, y + 3, x, y + boxH - 3);
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...COL.muted);
+      doc.text(it.label, x + 5, y + 7);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...it.color);
+      doc.text(it.val, x + 5, y + 15.5);
+    });
+
+    y += boxH + 8;
+  }
+
+  /* ---------- Cabecera de tabla ---------- */
+  function dibujarCabeceraTabla() {
+    doc.setFillColor(...COL.dark);
+    doc.rect(margin, y, contentW, 7.5, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255, 255, 255);
+
+    doc.text('Fecha',    margin + 2,   y + 5);
+    doc.text('Hora',     margin + 27,  y + 5);
+    doc.text('Concepto', margin + 45,  y + 5);
+    doc.text('Tipo',     margin + 120, y + 5);
+    doc.text('Monto',    margin + contentW - 2, y + 5, { align: 'right' });
+
+    y += 7.5;
+  }
+
+  /* ---------- Inicio ---------- */
+  dibujarCabecera();
+
+  if (filtrados.length === 0) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(...COL.muted);
+    doc.text('No hay movimientos registrados en el período seleccionado.',
+             pageW / 2, y + 20, { align: 'center' });
+
+    doc.setFont('helvetica', 'italic');
+    doc.setFontSize(9);
+    doc.text('Agrega movimientos y vuelve a generar el PDF.',
+             pageW / 2, y + 28, { align: 'center' });
+
+    dibujarPie(1, 1);
+    doc.save(nombreArchivo(desde, hasta));
+    return;
+  }
+
+  dibujarResumen();
+  dibujarCabeceraTabla();
+
+  /* ---------- Filas ---------- */
+  let fila = 0;
+  filtrados.forEach(r => {
+    comprobarSalto(7.5);
+
+    if (fila % 2 === 0) {
+      doc.setFillColor(...COL.zebra);
+      doc.rect(margin, y, contentW, 7.5, 'F');
+    }
+
+    doc.setDrawColor(...COL.border);
+    doc.setLineWidth(0.15);
+    doc.line(margin, y + 7.5, margin + contentW, y + 7.5);
+
+    const [a, m, d] = r.dia.split('-');
+    const fechaStr = d + '/' + m + '/' + a;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...COL.text);
+
+    doc.text(fechaStr, margin + 2,  y + 5);
+    doc.text(r.hora,   margin + 27, y + 5);
+
+    // Truncar nombre largo
+    let nombre = r.nombre;
+    const maxW = 72;
+    if (doc.getTextWidth(nombre) > maxW) {
+      let corte = nombre.length;
+      while (corte > 3 && doc.getTextWidth(nombre.substring(0, corte) + '…') > maxW) corte--;
+      nombre = nombre.substring(0, corte) + '…';
+    }
+    doc.text(nombre, margin + 45, y + 5);
+
+    if (r.tipo === 'ganancia') {
+      doc.setTextColor(...COL.green);
+      doc.text('Ganancia', margin + 120, y + 5);
+    } else {
+      doc.setTextColor(...COL.red);
+      doc.text('Gasto', margin + 120, y + 5);
+    }
+
+    doc.setFont('helvetica', 'bold');
+    if (r.tipo === 'ganancia') {
+      doc.setTextColor(...COL.green);
+      doc.text('+$' + fmtMoneda.format(r.monto),
+               margin + contentW - 2, y + 5, { align: 'right' });
+    } else {
+      doc.setTextColor(...COL.red);
+      doc.text('-$' + fmtMoneda.format(r.monto),
+               margin + contentW - 2, y + 5, { align: 'right' });
+    }
+
+    y += 7.5;
+    fila++;
+  });
+
+  /* ---------- Totales finales ---------- */
+  comprobarSalto(12);
+  y += 2;
+  doc.setFillColor(...COL.dark);
+  doc.rect(margin, y, contentW, 10, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text('TOTALES', margin + 2, y + 6.5);
+  doc.text('Ganado: +$' + fmtMoneda.format(gan),    margin + 100, y + 6.5, { align: 'right' });
+  doc.text('Gastado: -$' + fmtMoneda.format(gas),   margin + 148, y + 6.5, { align: 'right' });
+  doc.text('Balance: ' + (balance >= 0 ? '+' : '-') + '$' + fmtMoneda.format(Math.abs(balance)),
+           margin + contentW - 2, y + 6.5, { align: 'right' });
+
+  /* ---------- Footer en todas las páginas ---------- */
+  const totalPag = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= totalPag; i++) {
+    doc.setPage(i);
+    dibujarPie(i, totalPag);
+  }
+
+  doc.save(nombreArchivo(desde, hasta));
+}
+
+function nombreArchivo(desde, hasta) {
+  return 'estado-cuenta_' + localIso(desde) + '_a_' + localIso(hasta) + '.pdf';
+}
+
+/* =========================================================
+   INICIO
+   ========================================================= */
+cargar();
+actualizarReloj();
+setInterval(actualizarReloj, 1000);
+render();
+</script>
+</body>
+</html>
