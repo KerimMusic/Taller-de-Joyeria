@@ -167,6 +167,11 @@
   }
   .movement:hover { transform: translateX(2px); border-color: var(--border-mid); box-shadow: var(--shadow); }
   .mv-icon { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 1.15rem; flex-shrink: 0; }
+
+  /* NUEVO: si el movimiento tiene comprobante, la imagen ocupa el lugar del icono */
+  .mv-icon.mv-icon-img { padding: 0; overflow: hidden; background: var(--surface-inset); }
+  .mv-icon.mv-icon-img img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 13px; }
+
   .mv-info { flex: 1; min-width: 0; }
   .mv-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .mv-meta { font-size: 0.72rem; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -996,8 +1001,16 @@ function renderMovementHTML(reg) {
   try {
     const cat = getCategoria(reg);
     const isInc = reg.tipo === 'ganancia';
+
+    // NUEVO: si el registro tiene comprobante con imagen, se muestra esa
+    // imagen en el mismo lugar donde antes iba el icono de la categoría.
+    const tieneImg = typeof reg.comprobante === 'string' && reg.comprobante.length > 0;
+    const iconoHTML = tieneImg
+      ? `<div class="mv-icon mv-icon-img"><img src="${reg.comprobante}" alt="Comprobante"></div>`
+      : `<div class="mv-icon" style="background:${cat.color}1a;color:${cat.color}">${cat.icon}</div>`;
+
     return `<div class="movement" data-id="${escapeHtml(reg.id)}">
-      <div class="mv-icon" style="background:${cat.color}1a;color:${cat.color}">${cat.icon}</div>
+      ${iconoHTML}
       <div class="mv-info">
         <div class="mv-name">${escapeHtml(reg.nombre)}</div>
         <div class="mv-meta">${cat.nombre} · ${formatFechaHora(reg)}</div>
@@ -1894,10 +1907,9 @@ onSnapshot(DOC_REF, (snap) => {
 
 /* ============================================================
    OCR DE COMPROBANTES (Tesseract.js — carga bajo demanda)
-   Todo lo siguiente es ADITIVO: no modifica nada existente.
    ============================================================ */
 
-// Cargador diferido de Tesseract.js (se descarga solo al usarse)
+// Cargador diferido de Tesseract.js
 let _tesseractLoader = null;
 function cargarTesseract() {
   if (_tesseractLoader) return _tesseractLoader;
@@ -1916,7 +1928,6 @@ function cargarTesseract() {
   return _tesseractLoader;
 }
 
-// Banner flotante de progreso
 function mostrarBannerOCR() {
   let el = document.getElementById('ocrBanner');
   if (el) return el;
@@ -1942,7 +1953,6 @@ function ocultarBannerOCR() {
   if (s) s.remove();
 }
 
-// Parser del texto OCR de un comprobante → {concepto, monto, fecha, categoria, descripcion}
 function parsearComprobante(texto) {
   const out = { concepto: '', monto: '', fecha: '', categoria: '', descripcion: '' };
   if (!texto || typeof texto !== 'string') return out;
@@ -1950,8 +1960,6 @@ function parsearComprobante(texto) {
   const lineas = texto.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   const textoLower = texto.toLowerCase();
 
-  // ---------- MONTO ----------
-  // Prioridad: palabra "TOTAL" (o similar) cerca de un número
   const montoRegex = /(?:total(?:\s*a\s*pagar|\s*general|\s*neto|\s*factura)?|importe(?:\s*total)?|gran\s*total|monto(?:\s*total)?|suma(?:\s*total)?)\s*[:\-]?\s*[\$€]?\s*(\d{1,6}[.,]\d{2})/i;
   const montoMatch = texto.match(montoRegex);
 
@@ -1959,7 +1967,6 @@ function parsearComprobante(texto) {
   if (montoMatch && montoMatch[1]) {
     montoStr = montoMatch[1];
   } else {
-    // Fallback: número decimal más grande del ticket (filtrado a rango razonable)
     const nums = [...texto.matchAll(/(\d{1,6}[.,]\d{2})(?:\b|$)/g)]
       .map(m => {
         let s = m[1].replace(/\s/g, '');
@@ -1985,8 +1992,6 @@ function parsearComprobante(texto) {
     if (isFinite(n) && n > 0 && n < 1e9) out.monto = n.toFixed(2);
   }
 
-  // ---------- FECHA ----------
-  // Primero dd/mm/aaaa, dd-mm-aaaa o dd.mm.aaaa
   const fechaMatch = texto.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
   if (fechaMatch) {
     let d = parseInt(fechaMatch[1], 10);
@@ -1997,7 +2002,6 @@ function parsearComprobante(texto) {
       out.fecha = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     }
   }
-  // Si no, formato aaaa-mm-dd
   if (!out.fecha) {
     const isoMatch = texto.match(/(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/);
     if (isoMatch) {
@@ -2010,7 +2014,6 @@ function parsearComprobante(texto) {
     }
   }
 
-  // ---------- CONCEPTO ----------
   const lineasIgnorar = /^(factura|recibo|ticket|comprobante|fecha|hora|total|subtotal|iva|itbms|impuesto|cambio|efectivo|tarjeta|cliente|cajero|gracias|tel[eé]fono|tel[eé]f\.?|nit|ruc|rfc|www|http|c[oó]digo|autorizaci[oó]n|n[uú]mero|no\.|n[°º])/i;
   for (const linea of lineas.slice(0, 12)) {
     if (linea.length < 3 || linea.length > 70) continue;
@@ -2023,7 +2026,6 @@ function parsearComprobante(texto) {
   }
   if (!out.concepto) out.concepto = 'Gasto';
 
-  // ---------- CATEGORÍA ----------
   const keywords = {
     alimentacion: ['restaurant','restauran','comida','supermercado','super','mercado','panaderia','panadería','café','cafe','cafeteria','cafetería','pizza','burger','hamburg','taco','sushi','abarrote','fruta','carnicer','pulperia','pulpería','almacén','almacen','bebida','refresco','cerveza','pupus','antojito'],
     transporte:   ['gasolina','combustible','gasoliner','estacion','estación','uber','taxi','cabify','didi','bus','autobus','autobús','metro','peaje','parqueo','estacionamiento','petro','shell','texaco','puma','delta','transporte','pasaje'],
@@ -2039,7 +2041,6 @@ function parsearComprobante(texto) {
   }
   if (!out.categoria) out.categoria = 'otros';
 
-  // ---------- DESCRIPCIÓN ----------
   const partes = [];
   if (out.concepto && out.concepto !== 'Gasto') partes.push(`Comercio: ${out.concepto}`);
   partes.push('Datos extraídos automáticamente del comprobante (OCR).');
@@ -2048,7 +2049,6 @@ function parsearComprobante(texto) {
   return out;
 }
 
-// Rellena los campos del formulario de gasto con los datos parseados
 function aplicarDatosOCR(datos) {
   const nombreEl = document.getElementById('nombreGas');
   const montoEl = document.getElementById('montoGas');
@@ -2072,12 +2072,11 @@ function aplicarDatosOCR(datos) {
   }
 }
 
-// Listener ADITIVO de OCR sobre el mismo input de foto
 document.getElementById('fotoGas').addEventListener('change', async (e) => {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
   if (!file.type.startsWith('image/')) return;
-  if (file.size > 8 * 1024 * 1024) return; // ya validado por el handler original
+  if (file.size > 8 * 1024 * 1024) return;
 
   mostrarBannerOCR();
   actualizarBannerOCR('Preparando OCR…');
@@ -2102,7 +2101,6 @@ document.getElementById('fotoGas').addEventListener('change', async (e) => {
     console.log('📄 OCR texto:', data.text);
     console.log('📄 OCR parseado:', parsed);
 
-    // Solo aplica si el modal de gasto sigue abierto
     const modal = document.getElementById('modalGasto');
     if (modal && modal.classList.contains('activo')) {
       aplicarDatosOCR(parsed);
@@ -2124,21 +2122,18 @@ document.getElementById('fotoGas').addEventListener('change', async (e) => {
 /* ============================================================
    OPCIÓN CÁMARA / GALERÍA (aditivo)
    ============================================================ */
-
-// Botón "Cámara" → dispara el input con capture="environment"
 const _btnCamara = document.getElementById('btnCamara');
 if (_btnCamara) {
   _btnCamara.addEventListener('click', (e) => {
     e.stopPropagation();
     const cam = document.getElementById('fotoGasCam');
     if (cam) {
-      cam.value = '';   // reset para permitir re-seleccionar la misma
+      cam.value = '';
       cam.click();
     }
   });
 }
 
-// Botón "Galería" → dispara el input clásico (fotoGas)
 const _btnGaleria = document.getElementById('btnGaleria');
 if (_btnGaleria) {
   _btnGaleria.addEventListener('click', (e) => {
@@ -2151,8 +2146,6 @@ if (_btnGaleria) {
   });
 }
 
-// El input de cámara reenvía el archivo al input original para que
-// se ejecuten los handlers existentes (compresión + OCR) sin duplicar lógica.
 const _fotoGasCam = document.getElementById('fotoGasCam');
 if (_fotoGasCam) {
   _fotoGasCam.addEventListener('change', (e) => {
@@ -2170,7 +2163,6 @@ if (_fotoGasCam) {
       console.warn('No se pudo transferir la foto de cámara:', err);
       toast('No se pudo procesar la foto de la cámara', 'error');
     }
-    // Limpiar para permitir volver a tomar la misma foto
     e.target.value = '';
   });
 }
