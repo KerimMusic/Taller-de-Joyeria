@@ -645,7 +645,6 @@ const MAX_REGISTROS = 2000;
 const MAX_COMPROBANTE_CHARS = 800000;
 const MAX_PAYLOAD_BYTES = 950000;
 const CLAVE = 'registro_finanzas_v1';
-const CLAVE_TS = 'registro_finanzas_v1_updated';
 
 /* ============================================================
    CATEGORÍAS
@@ -678,7 +677,6 @@ function getCategoria(reg) {
    ESTADO
    ============================================================ */
 let registros = [];
-let localUpdatedAt = 0;
 let currentView = 'inicio';
 let selectedCatIngreso = 'otros-ingreso';
 let selectedCatGasto = 'otros';
@@ -785,39 +783,31 @@ function escapeHtml(str) {
 function sanitizarRegistro(r) {
   if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
 
-  // Monto es crítico: si no es número válido, no se puede reparar
   const montoNum = Number(r.monto);
   if (!Number.isFinite(montoNum) || montoNum <= 0 || montoNum >= 1e9) return null;
 
-  // Tipo
   const tipo = (r.tipo === 'ganancia' || r.tipo === 'gasto') ? r.tipo : 'gasto';
 
-  // Nombre
   let nombre = typeof r.nombre === 'string' ? r.nombre.trim() : '';
   if (nombre.length === 0) nombre = 'Sin concepto';
   nombre = nombre.slice(0, 200);
 
-  // Día
   let dia = r.dia;
   if (typeof dia !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dia)) {
     dia = claveDia(new Date());
   }
 
-  // Hora
   let hora = r.hora;
   if (typeof hora !== 'string' || hora.length === 0 || hora.length > 12) {
     hora = '00:00:00';
   }
 
-  // Categoría
   let categoria = typeof r.categoria === 'string' && r.categoria.length > 0
     ? r.categoria.slice(0, 30)
     : (tipo === 'ganancia' ? 'otros-ingreso' : 'otros');
 
-  // Descripción
   let descripcion = typeof r.descripcion === 'string' ? r.descripcion.slice(0, 500) : '';
 
-  // Comprobante
   let comprobante = r.comprobante;
   if (comprobante !== null && comprobante !== undefined &&
       (typeof comprobante !== 'string' || comprobante.length > MAX_COMPROBANTE_CHARS || comprobante.length === 0)) {
@@ -825,13 +815,11 @@ function sanitizarRegistro(r) {
   }
   if (comprobante === undefined) comprobante = null;
 
-  // ID
   let id = r.id;
   if (typeof id !== 'string' || id.length === 0 || id.length > 64) {
     id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   }
 
-  // Marca de tiempo (después de tener dia y hora válidos)
   let marcaTiempo = r.marcaTiempo;
   if (!Number.isFinite(marcaTiempo) || marcaTiempo <= 0) {
     marcaTiempo = getMarcaTiempo({ dia, hora });
@@ -865,9 +853,7 @@ function cargarLocal() {
   try {
     const datos = JSON.parse(localStorage.getItem(CLAVE));
     const arr = Array.isArray(datos) ? datos : [];
-    localUpdatedAt = parseInt(localStorage.getItem(CLAVE_TS) || '0', 10) || 0;
 
-    // Sanitizar todo lo que venga
     let cambios = false;
     const limpios = [];
     for (let i = 0; i < arr.length; i++) {
@@ -884,20 +870,17 @@ function cargarLocal() {
 
     if (cambios) {
       console.info('🔄 Registros migrados/saneados');
-      localUpdatedAt = Date.now();
       guardarLocal();
     }
   } catch (e) {
     console.error('❌ Error cargando local:', e);
     registros = [];
-    localUpdatedAt = 0;
   }
 }
 
 function guardarLocal() {
   try {
     localStorage.setItem(CLAVE, JSON.stringify(registros));
-    localStorage.setItem(CLAVE_TS, String(localUpdatedAt));
   } catch (e) {
     console.warn('⚠️ localStorage lleno:', e);
   }
@@ -905,12 +888,6 @@ function guardarLocal() {
 
 async function sincronizarFirestore() {
   try {
-    if (!Number.isFinite(localUpdatedAt) || localUpdatedAt <= 0) {
-      localUpdatedAt = Date.now();
-      guardarLocal();
-    }
-
-    // Sanitizar y armar payload (descarta irrecuperables pero NO bloquea el resto)
     const payloadRegistros = [];
     let descartados = 0;
     for (let i = 0; i < registros.length; i++) {
@@ -927,10 +904,9 @@ async function sincronizarFirestore() {
       return false;
     }
 
-    // 🔥 AQUI SE ELIMINÓ EL CAMPO actualizadoISO
+    // Payload limpio, sin campos de fecha
     const payload = {
-      registros: payloadRegistros,
-      actualizado: localUpdatedAt
+      registros: payloadRegistros
     };
 
     const bytes = new Blob([JSON.stringify(payload)]).size;
@@ -950,7 +926,6 @@ async function sincronizarFirestore() {
 }
 
 async function guardar() {
-  localUpdatedAt = Date.now();
   guardarLocal();
   return await sincronizarFirestore();
 }
@@ -1248,7 +1223,7 @@ function agregar(tipo, datos) {
       nombre: nombre.trim(),
       monto,
       dia: fechaFinal,
-      hora: horaLocal(ahora),  // ← formato manual, no toLocaleTimeString
+      hora: horaLocal(ahora),
       marcaTiempo,
       categoria: categoria || (tipo === 'ganancia' ? 'otros-ingreso' : 'otros'),
       descripcion: (descripcion || '').trim().slice(0, 500),
@@ -1260,7 +1235,7 @@ function agregar(tipo, datos) {
     registros.push(nuevo);
     guardarLocal();
     renderAll();
-    guardar();  // sync en background, no bloquea
+    guardar();
     return true;
   } catch (e) {
     console.error('❌ Error en agregar:', e);
@@ -1526,7 +1501,6 @@ async function eliminarRegistro(id) {
     try {
       ok = confirm(`¿Eliminar el ${tipo} "${reg.nombre}" de ${dinero(reg.monto)}?\n\nEsta acción no se puede deshacer.`);
     } catch (e) {
-      // Si confirm está bloqueado, procedemos
       ok = true;
     }
     if (!ok) return;
@@ -1827,7 +1801,7 @@ document.getElementById('syncBadge').addEventListener('click', async () => {
   }
 });
 window.addEventListener('online', () => {
-  if (localUpdatedAt > 0) sincronizarFirestore();
+  sincronizarFirestore();
 });
 
 /* ============================================================
@@ -1851,34 +1825,30 @@ onSnapshot(DOC_REF, (snap) => {
   try {
     if (snap.exists()) {
       const data = snap.data();
-      const remoteUpdatedAt = data.actualizado || 0;
-      if (remoteUpdatedAt > localUpdatedAt) {
-        const arr = Array.isArray(data.registros) ? data.registros : [];
-        // Sanitizar lo que venga del servidor
-        const limpios = [];
-        for (const r of arr) {
-          const s = sanitizarRegistro(r);
-          if (s) limpios.push(s);
-        }
+      const arr = Array.isArray(data.registros) ? data.registros : [];
+      
+      const limpios = [];
+      for (const r of arr) {
+        const s = sanitizarRegistro(r);
+        if (s) limpios.push(s);
+      }
+
+      // Comparar el string de los datos remotos con los locales para evitar bucles
+      if (JSON.stringify(limpios) !== JSON.stringify(registros)) {
         registros = limpios;
-        localUpdatedAt = remoteUpdatedAt;
         guardarLocal();
         renderAll();
         setSyncEstado('online', 'Sincronizado en la nube');
-      } else if (localUpdatedAt > remoteUpdatedAt) {
-        sincronizarFirestore();
       } else {
         setSyncEstado('online', 'Sincronizado en la nube');
       }
     } else {
-      // Doc no existe
-      if (registros.length > 0) sincronizarFirestore();
-      else {
-        const ahora = Date.now();
-        localUpdatedAt = ahora;
-        guardarLocal();
-        // 🔥 AQUI TAMBIÉN SE ELIMINÓ EL CAMPO actualizadoISO
-        setDoc(DOC_REF, { registros: [], actualizado: ahora })
+      // El documento no existe
+      if (registros.length > 0) {
+        sincronizarFirestore();
+      } else {
+        // Crear documento vacío SIN campos de fecha
+        setDoc(DOC_REF, { registros: [] })
           .then(() => setSyncEstado('online', 'Sincronizado en la nube'))
           .catch(() => setSyncEstado('offline', 'Sin conexión — guardado local'));
       }
