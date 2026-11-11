@@ -396,6 +396,120 @@
   .toast.success { background: var(--income-dark); }
   .toast.error { background: var(--expense-dark); }
 
+  /* ============================================================
+     BANNER DE ALERTA DE RIESGO FINANCIERO
+     ============================================================ */
+  .risk-banner {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 18px;
+    border-radius: var(--radius);
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid var(--expense);
+    box-shadow: 0 4px 14px rgba(220,38,38,0.15);
+    margin-bottom: 16px;
+    animation: riskPulse 2s ease-in-out infinite;
+  }
+  .risk-banner.visible { display: flex; }
+  .risk-banner .risk-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+    animation: riskShake 1.5s ease-in-out infinite;
+    line-height: 1;
+  }
+  .risk-banner .risk-content { flex: 1; min-width: 0; }
+  .risk-banner .risk-title {
+    font-weight: 800;
+    color: var(--expense-dark);
+    font-size: 0.92rem;
+    margin-bottom: 3px;
+    letter-spacing: 0.01em;
+  }
+  .risk-banner .risk-text {
+    font-size: 0.78rem;
+    color: var(--text-2);
+    line-height: 1.45;
+    font-weight: 500;
+  }
+  @keyframes riskPulse {
+    0%, 100% { box-shadow: 0 4px 14px rgba(220,38,38,0.15); }
+    50% { box-shadow: 0 4px 24px rgba(220,38,38,0.40); }
+  }
+  @keyframes riskShake {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-10deg) scale(1.05); }
+    75% { transform: rotate(10deg) scale(1.05); }
+  }
+
+  /* ============================================================
+     VENTANA FLOTANTE DE ALERTA (con botón Ver Estadísticas)
+     ============================================================ */
+  .risk-alert-modal {
+    max-width: 420px !important;
+    text-align: center;
+    padding: 32px 24px 26px !important;
+  }
+  .risk-alert-icon {
+    font-size: 3.6rem;
+    display: inline-block;
+    line-height: 1;
+    margin-bottom: 16px;
+    animation: riskShake 1.5s ease-in-out infinite;
+  }
+  .risk-alert-modal h3 {
+    color: var(--expense-dark) !important;
+    font-size: 1.3rem !important;
+    margin-bottom: 12px !important;
+    text-align: center;
+  }
+  .risk-alert-msg {
+    font-size: 0.92rem;
+    color: var(--text-2);
+    line-height: 1.55;
+    margin-bottom: 24px;
+    font-weight: 500;
+  }
+  .risk-alert-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .btn-ver-stats {
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, var(--expense) 0%, var(--expense-dark) 100%);
+    transition: all 0.18s;
+    box-shadow: 0 4px 14px rgba(220,38,38,0.30);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .btn-ver-stats:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(220,38,38,0.42);
+  }
+  .btn-ver-stats:active {
+    transform: scale(0.97);
+  }
+  .btn-ok-alert {
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    background: var(--surface-alt);
+    color: var(--text-2);
+    border: 1px solid var(--border-soft);
+    transition: all 0.18s;
+  }
+  .btn-ok-alert:hover {
+    background: var(--surface-inset);
+  }
+
   @media (max-width: 700px) {
     .modal-overlay { padding: 0; align-items: flex-end; }
     .modal {
@@ -405,6 +519,7 @@
     .modal-handle { display: block; }
     .modal-actions { flex-direction: column-reverse; }
     .modal-actions button { width: 100%; }
+    .risk-alert-modal { max-width: 100% !important; }
   }
   @media (max-width: 520px) {
     .app-shell { padding: 12px 10px 30px; }
@@ -449,7 +564,7 @@
   <section class="view active" id="view-inicio">
     <div class="hero-balance">
       <div class="hero-label">Saldo disponible</div>
-      <div class="hero-value" id="heroBalanceValue">$0,00</div>
+      <div class="hero-value" id="heroBalanceValue">$0,00 MXN</div>
       <div class="hero-period" id="heroPeriodo">Historial completo</div>
       <div class="indicator-bar">
         <div class="indicator-income" id="indicatorIncome" style="width:50%"></div>
@@ -458,6 +573,15 @@
       <div class="indicator-labels">
         <span><i class="dot-income"></i> Ingresos <b id="indicatorIncomeVal">$0</b></span>
         <span><i class="dot-expense"></i> Gastos <b id="indicatorExpenseVal">$0</b></span>
+      </div>
+    </div>
+
+    <!-- BANNER DE ALERTA DE RIESGO -->
+    <div class="risk-banner" id="riskBanner">
+      <div class="risk-icon">⚠️</div>
+      <div class="risk-content">
+        <div class="risk-title">¡Alerta de riesgo financiero!</div>
+        <div class="risk-text" id="riskText">Tu saldo está por debajo de $500. Estás en riesgo de pérdidas o bancarrota.</div>
       </div>
     </div>
 
@@ -644,6 +768,22 @@
     <div class="modal-actions">
       <button class="btn-cancel" id="btnCancelarPDF">Cancelar</button>
       <button class="btn-primary btn-income" id="btnGenerarPDF">⬇ Descargar PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: VENTANA FLOTANTE DE ALERTA DE RIESGO -->
+<div class="modal-overlay" id="modalAlertaRiesgo">
+  <div class="modal sheet risk-alert-modal">
+    <div class="modal-handle"></div>
+    <div class="risk-alert-icon">⚠️</div>
+    <h3>¡Alerta de Riesgo Financiero!</h3>
+    <p class="risk-alert-msg" id="alertaRiesgoTexto">
+      Tu saldo está por debajo de $500. Estás en riesgo de pérdidas o bancarrota.
+    </p>
+    <div class="risk-alert-actions">
+      <button class="btn-ver-stats" id="btnVerEstadisticasAlerta">📊 Ver Estadísticas</button>
+      <button class="btn-ok-alert" id="btnCerrarAlerta">Entendido</button>
     </div>
   </div>
 </div>
@@ -963,6 +1103,104 @@ async function guardar() {
 }
 
 /* ============================================================
+   VERIFICACIÓN DE RIESGO FINANCIERO
+   Si el saldo (balance) es menor a $500, muestra un banner de
+   alerta con animación, lanza un toast y abre una ventana
+   flotante (una vez por sesión).
+   ============================================================ */
+const UMBRAL_RIESGO = 500;
+
+function verificarRiesgo(balance) {
+  try {
+    const banner = document.getElementById('riskBanner');
+    const text = document.getElementById('riskText');
+    if (!banner) return;
+
+    if (balance < UMBRAL_RIESGO) {
+      banner.classList.add('visible');
+
+      if (text) {
+        if (balance < 0) {
+          text.textContent = `Tu saldo es ${dinero(balance)}. Estás en números rojos: riesgo de bancarrota. Toma acción inmediata.`;
+        } else {
+          text.textContent = `Tu saldo actual es ${dinero(balance)}, por debajo de $${UMBRAL_RIESGO}. Estás en riesgo de pérdidas o bancarrota.`;
+        }
+      }
+
+      // Toast de advertencia: solo una vez por sesión mientras se mantenga el riesgo
+      try {
+        if (!sessionStorage.getItem('riskToastShown')) {
+          sessionStorage.setItem('riskToastShown', '1');
+          setTimeout(() => {
+            try { toast('⚠️ Saldo bajo: riesgo de pérdidas o bancarrota', 'error'); } catch {}
+          }, 600);
+        }
+      } catch { /* sessionStorage puede fallar en modo privado */ }
+
+      // Ventana flotante con botón "Ver Estadísticas" (una vez por sesión)
+      try {
+        if (registros.length > 0 && !sessionStorage.getItem('riskModalShown')) {
+          sessionStorage.setItem('riskModalShown', '1');
+          setTimeout(() => {
+            try {
+              // No interrumpir al usuario si ya tiene un modal abierto
+              if (document.querySelector('.modal-overlay.activo')) return;
+              mostrarAlertaRiesgo(balance);
+            } catch (e) { console.warn('No se pudo mostrar alerta:', e); }
+          }, 1200);
+        }
+      } catch { /* sessionStorage puede fallar en modo privado */ }
+    } else {
+      banner.classList.remove('visible');
+      try { sessionStorage.removeItem('riskToastShown'); } catch {}
+      try { sessionStorage.removeItem('riskModalShown'); } catch {}
+    }
+  } catch (e) {
+    console.warn('Error verificando riesgo:', e);
+  }
+}
+
+/* ============================================================
+   VENTANA FLOTANTE DE ALERTA DE RIESGO
+   ============================================================ */
+function mostrarAlertaRiesgo(balance) {
+  try {
+    const texto = document.getElementById('alertaRiesgoTexto');
+    if (texto) {
+      if (balance < 0) {
+        texto.textContent = `Tu saldo es ${dinero(balance)}. Estás en números rojos: riesgo de bancarrota. Revisa tus estadísticas para identificar dónde estás perdiendo dinero.`;
+      } else {
+        texto.textContent = `Tu saldo actual es ${dinero(balance)}, por debajo de $${UMBRAL_RIESGO}. Estás en riesgo de pérdidas o bancarrota. Revisa tus estadísticas para tomar acción.`;
+      }
+    }
+    const modal = document.getElementById('modalAlertaRiesgo');
+    if (!modal) return;
+    if (modal.classList.contains('activo')) return;
+    openModal('modalAlertaRiesgo');
+  } catch (e) {
+    console.warn('Error mostrando alerta de riesgo:', e);
+  }
+}
+
+function initAlertaRiesgo() {
+  const btnVer = document.getElementById('btnVerEstadisticasAlerta');
+  if (btnVer) {
+    btnVer.addEventListener('click', () => {
+      try {
+        closeModal('modalAlertaRiesgo');
+        setTimeout(() => switchView('estadisticas'), 150);
+      } catch (e) { console.warn(e); }
+    });
+  }
+  const btnCerrar = document.getElementById('btnCerrarAlerta');
+  if (btnCerrar) {
+    btnCerrar.addEventListener('click', () => {
+      try { closeModal('modalAlertaRiesgo'); } catch (e) { console.warn(e); }
+    });
+  }
+}
+
+/* ============================================================
    RENDER
    ============================================================ */
 function renderHome() {
@@ -972,7 +1210,7 @@ function renderHome() {
     const balance = gan - gas;
 
     const el = id => document.getElementById(id);
-    if (el('heroBalanceValue')) el('heroBalanceValue').textContent = dinero(balance);
+    if (el('heroBalanceValue')) el('heroBalanceValue').textContent = dinero(balance) + ' MXN';
     if (el('sumIncome')) el('sumIncome').textContent = dinero(gan);
     if (el('sumExpense')) el('sumExpense').textContent = dinero(gas);
     if (el('indicatorIncomeVal')) el('indicatorIncomeVal').textContent = dineroSinSigno(gan);
@@ -983,6 +1221,9 @@ function renderHome() {
     const pctG = total > 0 ? (gas / total) * 100 : 50;
     if (el('indicatorIncome')) el('indicatorIncome').style.width = pctI + '%';
     if (el('indicatorExpense')) el('indicatorExpense').style.width = pctG + '%';
+
+    // Verificar riesgo financiero (banner + toast + ventana flotante)
+    verificarRiesgo(balance);
 
     const recientes = [...registros].sort((a,b) => getMarcaTiempo(b) - getMarcaTiempo(a)).slice(0, 5);
     const cont = el('recentList');
@@ -1002,7 +1243,7 @@ function renderMovementHTML(reg) {
     const cat = getCategoria(reg);
     const isInc = reg.tipo === 'ganancia';
 
-    // NUEVO: si el registro tiene comprobante con imagen, se muestra esa
+    // Si el registro tiene comprobante con imagen, se muestra esa
     // imagen en el mismo lugar donde antes iba el icono de la categoría.
     const tieneImg = typeof reg.comprobante === 'string' && reg.comprobante.length > 0;
     const iconoHTML = tieneImg
@@ -1671,6 +1912,9 @@ document.getElementById('btnGenerarPDF').addEventListener('click', () => {
   }
 });
 
+/* ============================================================
+   GENERADOR DE PDF MEJORADO (diseño claro y ordenado)
+   ============================================================ */
 function generarPDF(desde, hasta, etiqueta) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
@@ -1688,143 +1932,251 @@ function generarPDF(desde, hasta, etiqueta) {
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 14;
   const contentW = pageW - margin * 2;
-  const ROW_H = 6.5;
-  const FOOTER_LINE = pageH - 10;
-  const COL = { dark:[10,10,10], text:[30,30,30], muted:[120,120,120], income:[5,150,105], expense:[220,38,38], lightBg:[245,245,243], border:[222,222,218], zebra:[250,250,248] };
-  const X = { fecha: margin+2, hora: margin+20, concepto: margin+32, categoria: margin+94, tipo: margin+128, monto: margin+contentW-2 };
+  const FOOTER_LINE = pageH - 12;
   let y = 0, pageNum = 1;
 
+  // Paleta
+  const C = {
+    dark:      [10, 10, 10],
+    texto:     [30, 30, 30],
+    tenue:     [120, 120, 120],
+    ingreso:   [5, 150, 105],
+    gasto:     [220, 38, 38],
+    blanco:    [255, 255, 255],
+    claro:     [248, 248, 246],
+    borde:     [225, 225, 220],
+    zebra:     [250, 250, 248]
+  };
+
   const dibujarCabecera = () => {
-    doc.setFillColor(...COL.dark); doc.rect(0, 0, pageW, 26, 'F');
-    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15);
-    doc.text('Estado de Cuenta', margin, 12);
-    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(200,200,200);
-    doc.text('Registro de Ganancias y Gastos', margin, 18);
-    doc.setFontSize(7.5);
-    doc.text('Generado: ' + new Date().toLocaleString('es-ES'), pageW - margin, 11, { align: 'right' });
-    doc.text(etiqueta, pageW - margin, 16, { align: 'right' });
-    y = 32;
+    doc.setFillColor(...C.dark);
+    doc.rect(0, 0, pageW, 30, 'F');
+
+    doc.setTextColor(...C.blanco);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Estado de Cuenta', margin, 13);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(200, 200, 200);
+    doc.text('Registro de Ganancias y Gastos', margin, 20);
+
+    doc.setFontSize(8);
+    doc.text('Generado: ' + new Date().toLocaleString('es-ES'), pageW - margin, 12, { align: 'right' });
+    doc.text(etiqueta, pageW - margin, 19, { align: 'right' });
+
+    y = 38;
   };
 
   const dibujarCabeceraCont = () => {
-    doc.setFillColor(...COL.dark); doc.rect(0, 0, pageW, 16, 'F');
-    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10);
-    doc.text('Estado de Cuenta (continuación)', margin, 8);
-    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(200,200,200);
-    doc.text(etiqueta, margin, 13);
-    y = 22;
+    doc.setFillColor(...C.dark);
+    doc.rect(0, 0, pageW, 18, 'F');
+
+    doc.setTextColor(...C.blanco);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Estado de Cuenta (continuación)', margin, 9);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(200, 200, 200);
+    doc.text(etiqueta, margin, 14);
+
+    y = 26;
   };
 
   const dibujarResumen = () => {
-    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...COL.text);
-    doc.text('RESUMEN DEL PERÍODO', margin, y); y += 4;
-    const boxH = 16;
-    doc.setFillColor(...COL.lightBg); doc.setDrawColor(...COL.border); doc.setLineWidth(0.3);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor(...C.texto);
+    doc.text('RESUMEN DEL PERÍODO', margin, y);
+    y += 5;
+
+    const boxH = 20;
+    doc.setFillColor(...C.claro);
+    doc.setDrawColor(...C.borde);
+    doc.setLineWidth(0.4);
     doc.roundedRect(margin, y, contentW, boxH, 2, 2, 'FD');
+
     const colW = contentW / 3;
     const items = [
-      { label:'INGRESOS', val: '+$' + fmtMoneda.format(gan), color: COL.income },
-      { label:'GASTOS',   val: '−$' + fmtMoneda.format(gas), color: COL.expense },
-      { label:'BALANCE',  val: (balance>=0?'+':'−')+'$'+fmtMoneda.format(Math.abs(balance)), color: balance>=0?COL.income:COL.expense }
+      { label: 'INGRESOS', valor: '+$' + fmtMoneda.format(gan), color: C.ingreso },
+      { label: 'GASTOS',   valor: '−$' + fmtMoneda.format(gas), color: C.gasto },
+      { label: 'BALANCE',  valor: (balance >= 0 ? '+' : '−') + '$' + fmtMoneda.format(Math.abs(balance)), color: balance >= 0 ? C.ingreso : C.gasto }
     ];
-    items.forEach((it,i) => {
+
+    items.forEach((it, i) => {
       const x = margin + colW * i;
-      if (i>0) { doc.setDrawColor(...COL.border); doc.line(x, y+3, x, y+boxH-3); }
-      doc.setFont('helvetica','normal'); doc.setFontSize(6.5); doc.setTextColor(...COL.muted);
-      doc.text(it.label, x+4, y+5.5);
-      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...it.color);
-      doc.text(it.val, x+4, y+12.5);
+      if (i > 0) {
+        doc.setDrawColor(...C.borde);
+        doc.line(x, y + 3, x, y + boxH - 3);
+      }
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...C.tenue);
+      doc.text(it.label, x + 5, y + 6);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...it.color);
+      doc.text(it.valor, x + 5, y + 14);
     });
-    y += boxH + 5;
+
+    y += boxH + 6;
   };
 
   const dibujarCabeceraTabla = () => {
-    doc.setFillColor(...COL.dark); doc.rect(margin, y, contentW, 7, 'F');
-    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(255,255,255);
-    doc.text('Fecha', X.fecha, y+4.6);
-    doc.text('Hora', X.hora, y+4.6);
-    doc.text('Concepto', X.concepto, y+4.6);
-    doc.text('Categoría', X.categoria, y+4.6);
-    doc.text('Tipo', X.tipo, y+4.6);
-    doc.text('Monto', X.monto, y+4.6, { align: 'right' });
-    y += 7;
+    doc.setFillColor(...C.dark);
+    doc.rect(margin, y, contentW, 8, 'F');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...C.blanco);
+    doc.text('Fecha', margin + 2, y + 5.2);
+    doc.text('Hora', margin + 22, y + 5.2);
+    doc.text('Concepto', margin + 34, y + 5.2);
+    doc.text('Categoría', margin + 102, y + 5.2);
+    doc.text('Tipo', margin + 138, y + 5.2);
+    doc.text('Monto', pageW - margin - 2, y + 5.2, { align: 'right' });
+
+    y += 8;
   };
 
-  const truncar = (txt, maxW, fs) => {
+  const truncarTexto = (texto, maxW, fs) => {
     doc.setFontSize(fs);
-    if (doc.getTextWidth(txt) <= maxW) return txt;
-    let c = txt.length;
-    while (c > 1 && doc.getTextWidth(txt.substring(0,c)+'…') > maxW) c--;
-    return txt.substring(0,c)+'…';
+    if (doc.getTextWidth(texto) <= maxW) return texto;
+    let c = texto.length;
+    while (c > 1 && doc.getTextWidth(texto.substring(0, c) + '…') > maxW) c--;
+    return texto.substring(0, c) + '…';
   };
 
   const dibujarPie = (num, tot) => {
-    doc.setDrawColor(...COL.border); doc.setLineWidth(0.3);
+    doc.setDrawColor(...C.borde);
+    doc.setLineWidth(0.4);
     doc.line(margin, FOOTER_LINE, pageW - margin, FOOTER_LINE);
-    doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(...COL.muted);
-    doc.text('Documento generado automáticamente · Mis Finanzas', margin, FOOTER_LINE + 4.5);
-    doc.text('Página ' + num + ' de ' + tot, pageW - margin, FOOTER_LINE + 4.5, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...C.tenue);
+    doc.text('Documento generado automáticamente · Mis Finanzas', margin, FOOTER_LINE + 5);
+    doc.text('Página ' + num + ' de ' + tot, pageW - margin, FOOTER_LINE + 5, { align: 'right' });
   };
 
   dibujarCabecera();
+
   if (filtrados.length === 0) {
-    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...COL.muted);
-    doc.text('No hay movimientos en el período seleccionado.', pageW/2, y+25, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.setTextColor(...C.tenue);
+    doc.text('No hay movimientos en el período seleccionado.', pageW / 2, y + 25, { align: 'center' });
     dibujarPie(1, 1);
     doc.save(nombreArchivo(desde, hasta));
     return;
   }
+
   dibujarResumen();
   dibujarCabeceraTabla();
 
+  const ROW_H = 8;
   filtrados.forEach((r, idx) => {
-    const esUltima = idx === filtrados.length - 1;
-    const espNecesario = ROW_H + (esUltima ? 14 : 0);
-    if (y + espNecesario > FOOTER_LINE - 4) {
-      doc.addPage(); pageNum++;
+    if (y + ROW_H > FOOTER_LINE - 4) {
+      doc.addPage();
+      pageNum++;
       dibujarCabeceraCont();
       dibujarCabeceraTabla();
     }
-    if (idx % 2 === 0) { doc.setFillColor(...COL.zebra); doc.rect(margin, y, contentW, ROW_H, 'F'); }
-    doc.setDrawColor(...COL.border); doc.setLineWidth(0.1);
-    doc.line(margin, y+ROW_H, margin+contentW, y+ROW_H);
 
-    const [a,m,d] = (r.dia || '1970-01-01').split('-');
-    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...COL.text);
-    doc.text(`${d}/${m}/${a}`, X.fecha, y+4.3);
-    doc.setTextColor(...COL.muted);
-    doc.text((r.hora || '00:00').slice(0,5), X.hora, y+4.3);
-    doc.setTextColor(...COL.text);
-    doc.text(truncar(r.nombre, 60, 7.5), X.concepto, y+4.3);
+    // Fondo alternado (zebra)
+    if (idx % 2 === 0) {
+      doc.setFillColor(...C.zebra);
+      doc.rect(margin, y, contentW, ROW_H, 'F');
+    }
+
+    // Separador inferior
+    doc.setDrawColor(...C.borde);
+    doc.setLineWidth(0.1);
+    doc.line(margin, y + ROW_H, pageW - margin, y + ROW_H);
+
+    // Fecha
+    const [a, m, d] = (r.dia || '1970-01-01').split('-');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...C.texto);
+    doc.text(`${d}/${m}/${a}`, margin + 2, y + 5.3);
+
+    // Hora
+    doc.setTextColor(...C.tenue);
+    doc.text((r.hora || '00:00').slice(0, 5), margin + 22, y + 5.3);
+
+    // Concepto
+    doc.setTextColor(...C.texto);
+    const concepto = truncarTexto(r.nombre, 60, 8);
+    doc.text(concepto, margin + 34, y + 5.3);
+
+    // Categoría
     const cat = getCategoria(r);
-    doc.setTextColor(...COL.muted);
-    doc.text(truncar(cat.nombre, 32, 7.5), X.categoria, y+4.3);
-    if (r.tipo === 'ganancia') { doc.setTextColor(...COL.income); doc.text('Ingreso', X.tipo, y+4.3); }
-    else { doc.setTextColor(...COL.expense); doc.text('Gasto', X.tipo, y+4.3); }
-    doc.setFont('helvetica','bold'); doc.setFontSize(8);
-    if (r.tipo === 'ganancia') { doc.setTextColor(...COL.income); doc.text('+$'+fmtMoneda.format(r.monto), X.monto, y+4.3, { align: 'right' }); }
-    else { doc.setTextColor(...COL.expense); doc.text('−$'+fmtMoneda.format(r.monto), X.monto, y+4.3, { align: 'right' }); }
+    doc.setTextColor(...C.tenue);
+    const categoria = truncarTexto(cat.nombre, 30, 8);
+    doc.text(categoria, margin + 102, y + 5.3);
+
+    // Tipo
+    if (r.tipo === 'ganancia') {
+      doc.setTextColor(...C.ingreso);
+      doc.text('Ingreso', margin + 138, y + 5.3);
+    } else {
+      doc.setTextColor(...C.gasto);
+      doc.text('Gasto', margin + 138, y + 5.3);
+    }
+
+    // Monto
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    if (r.tipo === 'ganancia') {
+      doc.setTextColor(...C.ingreso);
+      doc.text('+$' + fmtMoneda.format(r.monto), pageW - margin - 2, y + 5.3, { align: 'right' });
+    } else {
+      doc.setTextColor(...C.gasto);
+      doc.text('−$' + fmtMoneda.format(r.monto), pageW - margin - 2, y + 5.3, { align: 'right' });
+    }
+
     y += ROW_H;
   });
 
+  // Fila de totales
   if (y + 12 > FOOTER_LINE - 4) {
-    doc.addPage(); pageNum++;
+    doc.addPage();
+    pageNum++;
     dibujarCabeceraCont();
     dibujarCabeceraTabla();
   }
-  y += 2;
-  doc.setFillColor(...COL.dark); doc.rect(margin, y, contentW, 10, 'F');
-  doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(255,255,255);
-  doc.text('TOTALES', margin+3, y+6.3);
-  doc.setFontSize(8); doc.setTextColor(52,211,153);
-  doc.text('Ingresos +$' + fmtMoneda.format(gan), 120, y+6.3, { align: 'right' });
-  doc.setTextColor(248,113,113);
-  doc.text('Gastos −$' + fmtMoneda.format(gas), 160, y+6.3, { align: 'right' });
-  doc.setTextColor(255,255,255);
-  doc.text('Balance ' + (balance>=0?'+':'−')+'$'+fmtMoneda.format(Math.abs(balance)), X.monto, y+6.3, { align: 'right' });
 
+  y += 2;
+  doc.setFillColor(...C.dark);
+  doc.rect(margin, y, contentW, 11, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(...C.blanco);
+  doc.text('TOTALES', margin + 4, y + 7);
+
+  doc.setFontSize(8);
+  doc.setTextColor(52, 211, 153);
+  doc.text('Ingresos +$' + fmtMoneda.format(gan), 125, y + 7, { align: 'right' });
+
+  doc.setTextColor(248, 113, 113);
+  doc.text('Gastos −$' + fmtMoneda.format(gas), 170, y + 7, { align: 'right' });
+
+  doc.setTextColor(...C.blanco);
+  doc.text('Balance ' + (balance >= 0 ? '+' : '−') + '$' + fmtMoneda.format(Math.abs(balance)), pageW - margin - 2, y + 7, { align: 'right' });
+
+  // Pie en todas las páginas
   const totalPag = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= totalPag; i++) { doc.setPage(i); dibujarPie(i, totalPag); }
+  for (let i = 1; i <= totalPag; i++) {
+    doc.setPage(i);
+    dibujarPie(i, totalPag);
+  }
+
   doc.save(nombreArchivo(desde, hasta));
 }
 
@@ -1854,6 +2206,7 @@ window.addEventListener('online', () => {
 cargarLocal();
 actualizarReloj();
 setInterval(actualizarReloj, 1000);
+initAlertaRiesgo();
 renderAll();
 setSyncEstado('', 'Conectando a la nube…');
 
