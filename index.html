@@ -530,7 +530,7 @@
       </div>
       <div class="field">
         <label for="montoGan">Cantidad</label>
-        <div class="amount-input"><span>$</span><input type="text" id="montoGan" inputmode="decimal" required placeholder="0,00"></div>
+        <div class="amount-input"><span></span><input type="text" id="montoGan" inputmode="decimal" required placeholder="0,00"></div>
       </div>
       <div class="field"><label>Categoría</label><div class="category-picker" id="categoryPickerGan"></div></div>
       <div class="field"><label for="fechaGan">Fecha</label><input type="date" id="fechaGan"></div>
@@ -558,7 +558,7 @@
       </div>
       <div class="field">
         <label for="montoGas">Cantidad</label>
-        <div class="amount-input"><span>$</span><input type="text" id="montoGas" inputmode="decimal" required placeholder="0,00"></div>
+        <div class="amount-input"><span></span><input type="text" id="montoGas" inputmode="decimal" required placeholder="0,00"></div>
       </div>
       <div class="field"><label>Categoría</label><div class="category-picker" id="categoryPickerGas"></div></div>
       <div class="field"><label for="fechaGas">Fecha</label><input type="date" id="fechaGas"></div>
@@ -927,10 +927,10 @@ async function sincronizarFirestore() {
       return false;
     }
 
+    // 🔥 AQUI SE ELIMINÓ EL CAMPO actualizadoISO
     const payload = {
       registros: payloadRegistros,
-      actualizado: localUpdatedAt,
-      actualizadoISO: new Date(localUpdatedAt).toISOString()
+      actualizado: localUpdatedAt
     };
 
     const bytes = new Blob([JSON.stringify(payload)]).size;
@@ -1877,7 +1877,8 @@ onSnapshot(DOC_REF, (snap) => {
         const ahora = Date.now();
         localUpdatedAt = ahora;
         guardarLocal();
-        setDoc(DOC_REF, { registros: [], actualizado: ahora, actualizadoISO: new Date(ahora).toISOString() })
+        // 🔥 AQUI TAMBIÉN SE ELIMINÓ EL CAMPO actualizadoISO
+        setDoc(DOC_REF, { registros: [], actualizado: ahora })
           .then(() => setSyncEstado('online', 'Sincronizado en la nube'))
           .catch(() => setSyncEstado('offline', 'Sin conexión — guardado local'));
       }
